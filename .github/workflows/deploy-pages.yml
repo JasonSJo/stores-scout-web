@@ -43,11 +43,10 @@ jobs:
       - uses: actions/checkout@v4
       # enablement: true 를 쓰지 않는다. Actions 기본 토큰에는 Pages 를 새로 만들 권한이
       # 없어서, 아직 안 켜져 있으면 'Resource not accessible by integration' 으로 죽는다.
+      # Pages 사이트는 사람이 Settings → Pages → Source = GitHub Actions 로 켠다.
+      # 워크플로 토큰으로는 만들 수 없다(관리자 권한). 안 켜져 있으면 여기서
+      # "Get Pages site failed … Not Found" 로 멈춘다 — 새 저장소에서 실제로 그랬다.
       - uses: actions/configure-pages@v5
-        # 새 저장소는 Pages 사이트가 아직 없다. 워크플로가 pages: write 권한으로 직접
-        # 만든다 — Settings → Pages 를 손으로 켜지 않아도 된다. 이미 있으면 그대로 쓴다.
-        with:
-          enablement: true
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
