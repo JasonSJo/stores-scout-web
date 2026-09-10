@@ -45,3 +45,4 @@ node --test tests/*.mjs
 `web/public/CNAME` 이 스위치다. 없으면 `https://<user>.github.io/stores-scout-web/`,
 있으면 `https://stores-scout.com/`. 도메인은 Settings → Pages 에서 붙이고, 그 뒤에
 CNAME 파일을 넣는다. 순서를 어기면 몇 분 동안 사이트가 깨진다.
+DNS 레코드·검증·되돌리기·저장소 옮기기는 [DEPLOY.md](DEPLOY.md).
