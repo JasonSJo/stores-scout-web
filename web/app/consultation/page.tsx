@@ -823,8 +823,9 @@ export default function ConsultationPage() {
             <ShieldCheck size={20} />
             <h3>상담 정보는 안전하게</h3>
             <p>
-              입력하신 내용은 이 브라우저 안에만 있습니다. 서버로 보내지 않고,
-              페이지를 벗어나면 지워집니다. 남기시려면 상담 파일로 내려받으십시오.
+              고객 기본 정보는 이 브라우저 안에서만 처리합니다. 예상매출 조회를
+              실행할 때만 부동산 상세 주소가 집계 API로 전송됩니다. 남기시려면
+              상담 파일로 내려받으십시오.
             </p>
           </div>
           <span className="sidebar-domain">stores-scout.com</span>
