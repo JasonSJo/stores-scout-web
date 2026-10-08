@@ -20,6 +20,14 @@ type Place = {
   x: string;
   y: string;
 };
+type Highlight = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  label: string;
+  radiusMeters?: number;
+  circleColor?: string;
+};
 
 function search(places: InstanceType<NonNullable<KakaoMaps['services']>['Places']>, keyword: string) {
   return new Promise<Place[]>((resolve) => {
@@ -29,7 +37,7 @@ function search(places: InstanceType<NonNullable<KakaoMaps['services']>['Places'
   });
 }
 
-export function BrandLocationMap({ region }: { region: string }) {
+export function BrandLocationMap({ region, highlight }: { region: string; highlight?: Highlight }) {
   const [brand, setBrand] = useState('전체');
   const [points, setPoints] = useState<MapPoint[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,7 +86,11 @@ export function BrandLocationMap({ region }: { region: string }) {
       <button type="button" className="refresh" onClick={() => setReload((value) => value + 1)}>다시 찾기</button>
     </div>
     <p className="public-map-status" role="status">{loading ? '카카오맵 검색 중입니다…' : message}</p>
-    <PropertyMap points={points} mapLabel="브랜드 지점 카카오맵" emptyMessage="검색된 브랜드 지점이 없습니다." />
+    <PropertyMap
+      points={highlight ? [...points, highlight] : points}
+      mapLabel="브랜드 지점 및 예상매출 카카오맵"
+      emptyMessage="검색된 브랜드 지점이 없습니다."
+    />
     <p className="map-caption">주황색 원은 각 지점 중심 반경 500m입니다. 카카오 장소 검색 결과는 변동될 수 있으므로 실제 운영 전 현장 확인이 필요합니다.</p>
   </section>;
 }

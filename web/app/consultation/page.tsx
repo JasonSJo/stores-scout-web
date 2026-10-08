@@ -57,6 +57,8 @@ type Consultation = {
   funding: string;
   operation: string;
   propertyAddress: string;
+  propertyZip: string;
+  propertyDetail: string;
 };
 type ExpectedSales = {
   범위_m: number;
@@ -69,6 +71,7 @@ type ExpectedSales = {
   브랜드보정률: number;
   최종_일매출원: number;
   최종_월매출원: number;
+  좌표?: { 위도: number; 경도: number };
   출처: string[];
   주의: string;
 };
@@ -107,6 +110,8 @@ const initial: Consultation = {
   funding: '',
   operation: '',
   propertyAddress: '',
+  propertyZip: '',
+  propertyDetail: '',
 };
 const markets = [
   { name: '오피스', icon: BriefcaseBusiness },
@@ -121,7 +126,7 @@ const money = (value: string) =>
 
 export default function ConsultationPage() {
   const [form, setForm] = useState<Consultation>(initial);
-  const [addressTarget, setAddressTarget] = useState<'work' | null>(null);
+  const [addressTarget, setAddressTarget] = useState<'work' | 'property' | null>(null);
   const [addressError, setAddressError] = useState('');
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
@@ -190,14 +195,20 @@ export default function ConsultationPage() {
           height: '100%',
           oncomplete(data) {
             if (!active) return;
-            setForm((prev) => ({
-              ...prev,
-              work: {
-                ...prev.work,
-                zip: data.zonecode,
-                main: data.roadAddress || data.jibunAddress,
-              },
-            }));
+            setForm((prev) => addressTarget === 'property'
+              ? {
+                  ...prev,
+                  propertyZip: data.zonecode,
+                  propertyAddress: data.roadAddress || data.jibunAddress,
+                }
+              : {
+                  ...prev,
+                  work: {
+                    ...prev.work,
+                    zip: data.zonecode,
+                    main: data.roadAddress || data.jibunAddress,
+                  },
+                });
             setAddressTarget(null);
           },
         }).embed(postcodeRef.current);
@@ -468,7 +479,10 @@ export default function ConsultationPage() {
   }
 
   async function fetchExpectedSales() {
-    const address = form.propertyAddress.trim();
+    const address = [form.propertyAddress, form.propertyDetail]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(' ');
     if (address.length < 5) {
       setSalesError('부동산 상세 주소를 입력해 주세요.');
       return;
@@ -497,6 +511,16 @@ export default function ConsultationPage() {
       setSalesLoading(false);
     }
   }
+  const expectedSalesPoint = salesResult?.좌표 && Number.isFinite(salesResult.좌표.위도) && Number.isFinite(salesResult.좌표.경도)
+    ? {
+        id: 'expected-sales-target',
+        latitude: salesResult.좌표.위도,
+        longitude: salesResult.좌표.경도,
+        label: `분석 대상 · 월 ${salesResult.최종_월매출원.toLocaleString('ko-KR')}원`,
+        radiusMeters: salesResult.범위_m,
+        circleColor: '#BB3E18',
+      }
+    : undefined;
 
   function renderResidenceFields() {
     return (
@@ -677,7 +701,18 @@ export default function ConsultationPage() {
             </p>
             <div className="expected-sales-form">
               <label htmlFor="property-address">부동산 상세 주소</label>
-              <div className="expected-sales-input-row">
+              <div className="expected-sales-input-row postcode-input-row">
+                <input
+                  aria-label="부동산 우편번호"
+                  value={form.propertyZip}
+                  placeholder="우편번호"
+                  readOnly
+                />
+                <Button type="button" variant="outline" onClick={() => setAddressTarget('property')}>
+                  <Search size={15} /> 주소 검색
+                </Button>
+              </div>
+              <div className="expected-sales-input-row expected-sales-address-row">
                 <input
                   id="property-address"
                   value={form.propertyAddress}
@@ -686,13 +721,25 @@ export default function ConsultationPage() {
                     setSalesResult(null);
                     setSalesError('');
                   }}
-                  placeholder="예: 부산광역시 부산진구 중앙대로 123"
+                  placeholder="도로명 또는 지번 주소"
                   maxLength={200}
                 />
-                <Button type="button" onClick={fetchExpectedSales} disabled={salesLoading}>
-                  {salesLoading ? '분석 중…' : '예상매출 확인하기'}
-                </Button>
               </div>
+              <input
+                className="expected-sales-detail-input"
+                aria-label="부동산 상세주소"
+                value={form.propertyDetail}
+                onChange={(event) => {
+                  update('propertyDetail', event.target.value);
+                  setSalesResult(null);
+                  setSalesError('');
+                }}
+                placeholder="상세주소 (선택)"
+                maxLength={120}
+              />
+              <Button type="button" onClick={fetchExpectedSales} disabled={salesLoading}>
+                {salesLoading ? '분석 중…' : '예상매출 확인하기'}
+              </Button>
               {salesError ? <p className="form-error" role="alert">{salesError}</p> : null}
             </div>
             {salesResult ? (
@@ -715,7 +762,7 @@ export default function ConsultationPage() {
               </div>
             ) : null}
           </section>
-          <BrandLocationMap region={publicMapRegion} />
+          <BrandLocationMap region={publicMapRegion} highlight={expectedSalesPoint} />
           <details className="workspace-card property-save">
             <summary>상담 내용 확인·저장·내려받기</summary>
             <dl className="complete-summary">
@@ -1253,7 +1300,7 @@ export default function ConsultationPage() {
       >
         <DialogContent className="postcode-dialog">
           <DialogTitle>
-            근무지 주소 검색
+            {addressTarget === 'property' ? '부동산 주소 검색' : '근무지 주소 검색'}
           </DialogTitle>
           <DialogDescription>
             도로명, 건물명 또는 지번으로 검색해 주세요.
