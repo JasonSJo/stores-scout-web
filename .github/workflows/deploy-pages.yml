@@ -98,12 +98,13 @@ jobs:
           echo "카카오맵 JavaScript 키 확인 완료 (값은 출력하지 않음)"
 
       - name: Build
-        # JavaScript SDK 키만 전달. 서버 비밀키는 VITE_ 변수에 넣지 않습니다.
-        # 백엔드 주소도 넣지 않습니다 — 공개 화면은 서버를 부르지 않습니다.
+        # 지도용 브라우저 키와 고객 공개 집계 API 주소만 전달한다.
+        # API 주소에는 인증키·원본 매출이 들어가지 않는다.
         working-directory: web
         env:
           STORE_SCOUT_BASE: ${{ steps.base.outputs.base }}
           VITE_KAKAO_MAP_JS_KEY: ${{ secrets.KAKAO_MAP_JS_KEY }}
+          VITE_STORE_SCOUT_API_ORIGIN: ${{ secrets.STORE_SCOUT_API_ORIGIN }}
         run: npm run build
 
       # 지도를 쓰는 화면이 없으면 Vite 가 로더를 통째로 빼므로 키도 로더도 산출물에 없다.
@@ -154,13 +155,9 @@ jobs:
           fi
 
           # ── 여기부터 가드. 하나라도 걸리면 배포하지 않는다. ──────────────
-          # 공개 프론트에 백엔드 값이 섞이면 회사 원가 모델이 그대로 나간다.
-          # 실제로 옛 정적 화면이 그 상태였다 — 오류가 아니라서 아무도 몰랐다.
-          # 값(980·0.412…)만 막으면 이름을 바꿔 빠져나가므로 이름으로 막는다.
-          # 변수 이름은 ASCII 여야 한다 — bash 는 한글 변수명을 받지 않는다.
-          # 예상매출·매출계수: 공개 화면은 매출을 계산하지도 보여 주지도 않는다. 예시라고 적어도
-          # 가맹희망자가 보는 화면에 예상 월매출이 찍히면 예상매출액 산정서와 섞인다.
-          BACKEND_WORDS='고정인건비|대출비율|연금리|리스_월|변동비율|좌석수_기본|흡인력|잔존율|등시선|m5_verdict|quick_site|설정\.yaml|예상매출|예상 월매출|예상 연매출|매출계수|기준계수'
+          # 공개 화면은 서버의 원본 매출·원가 모델을 담지 않고, 공개 집계
+          # endpoint의 익명 결과만 표시한다. 계산 로직·키·지점별 값은 금지한다.
+          BACKEND_WORDS='고정인건비|대출비율|연금리|리스_월|변동비율|좌석수_기본|흡인력|잔존율|등시선|m5_verdict|quick_site|설정\.yaml|gross_sales_won|net_sales_won|operating_days|SBIZ_.*CERT_KEY|KAKAO_REST_API_KEY'
           if grep -rqE "$BACKEND_WORDS" _site/; then
             echo "::error::백엔드 값·이름이 공개 산출물에 있습니다"
             grep -rhoE "$BACKEND_WORDS" _site/ | sort -u | head -20
@@ -174,12 +171,10 @@ jobs:
             exit 1
           fi
 
-          # 상담 화면은 개인정보를 다룬다 — 서버로 보내는 코드가 있으면 중단.
-          # 카카오 우편번호 스크립트(주소 검색)는 <script src> 라 여기 걸리지 않는다.
-          # api.stores-scout.com: 상담 화면은 개인정보를 받는다. 공개 번들이 백엔드를 부르면
-          # '이 브라우저를 벗어나지 않는다' 는 약속이 거짓이 된다. 주소 자체를 막는다.
-          if grep -rq "XMLHttpRequest\|sendBeacon\|new WebSocket\|api\.stores-scout\.com" _site/assets/; then
-            echo "::error::상담 화면에 외부 전송 코드가 있습니다"
+          # 상담 결과의 상세 주소만 공개 집계 API로 전송한다. XMLHttpRequest·Beacon·
+          # WebSocket은 계속 금지하며, API origin은 Repository secret으로만 주입한다.
+          if grep -rq "XMLHttpRequest\|sendBeacon\|new WebSocket" _site/assets/; then
+            echo "::error::승인되지 않은 외부 전송 코드가 있습니다"
             exit 1
           fi
 
