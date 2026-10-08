@@ -18,6 +18,19 @@ export type KakaoMaps = {
     strokeColor?: string; strokeOpacity?: number; strokeStyle?: string;
     fillColor?: string; fillOpacity?: number;
   }) => { setMap(map: KakaoMap | null): void };
+  services?: {
+    Places: new () => {
+      keywordSearch(
+        keyword: string,
+        callback: (data: Array<{
+          id: string; place_name: string; address_name: string;
+          road_address_name: string; x: string; y: string;
+        }>, status: string) => void,
+        options?: { size?: number },
+      ): void;
+    };
+    Status: { OK: string };
+  };
   event: { addListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void;
     removeListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void };
 };
@@ -37,7 +50,7 @@ export function loadKakaoMap(): Promise<KakaoMaps> {
       reject(new Error('카카오맵을 불러오지 못했습니다. JavaScript 키, 등록 도메인, 지도 사용 설정과 네트워크를 확인하세요.'));
     };
     const timer = setTimeout(fail, 15000);
-    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&appkey=' + encodeURIComponent(key);
+    script.src = 'https://dapi.kakao.com/v2/maps/sdk.js?autoload=false&libraries=services&appkey=' + encodeURIComponent(key);
     script.async = true;
     script.onerror = fail;
     script.onload = () => {
