@@ -620,8 +620,8 @@ export default function ConsultationPage() {
               <span className="internal-badge">사내 전용</span>
             </div>
             <p>
-              조건에 맞는 매물 대신, 내부 인증 결과창에서 브랜드별 지점 매출과
-              지점 중심 반경 500m 지도를 확인합니다.
+              내부 인증 결과창에서 브랜드별 지점 매출과 지점 중심 반경 500m
+              지도를 확인합니다.
             </p>
             <div className="brand-sales-panel-grid">
               <div><strong>브랜드별 지점</strong><span>기간·시군구 필터</span></div>
