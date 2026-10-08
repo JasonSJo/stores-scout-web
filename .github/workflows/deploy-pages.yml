@@ -83,12 +83,52 @@ jobs:
         working-directory: web
         run: npm run test:map && npm run test:phone
 
+      - name: Validate Kakao Maps JavaScript key
+        env:
+          VITE_KAKAO_MAP_JS_KEY: ${{ secrets.KAKAO_MAP_JS_KEY }}
+        run: |
+          if [ -z "$VITE_KAKAO_MAP_JS_KEY" ]; then
+            echo "::error::Repository secret KAKAO_MAP_JS_KEY가 없거나 비어 있습니다"
+            exit 1
+          fi
+          if [ "${#VITE_KAKAO_MAP_JS_KEY}" -lt 20 ]; then
+            echo "::error::KAKAO_MAP_JS_KEY가 올바른 JavaScript 키 형식이 아닙니다"
+            exit 1
+          fi
+          echo "카카오맵 JavaScript 키 확인 완료 (값은 출력하지 않음)"
+
       - name: Build
-        # 공개 화면은 서버·매출 자료·카카오맵을 호출하지 않는다.
+        # JavaScript SDK 키만 전달. 서버 비밀키는 VITE_ 변수에 넣지 않습니다.
+        # 백엔드 주소도 넣지 않습니다 — 공개 화면은 서버를 부르지 않습니다.
         working-directory: web
         env:
           STORE_SCOUT_BASE: ${{ steps.base.outputs.base }}
+          VITE_KAKAO_MAP_JS_KEY: ${{ secrets.KAKAO_MAP_JS_KEY }}
         run: npm run build
+
+      # 지도를 쓰는 화면이 없으면 Vite 가 로더를 통째로 빼므로 키도 로더도 산출물에 없다.
+      # 2026-10-08 에 상담 결과에서 지도를 내렸을 때 이 확인이 배포를 막았다.
+      # 화면이 지도를 import 할 때만 키 주입과 로더를 요구한다.
+      - name: Detect map usage
+        id: map
+        run: |
+          if grep -rqE "from '@/components/property-map'" web/app web/src; then
+            echo "used=yes" >> "$GITHUB_OUTPUT"; echo "지도 사용 화면 있음"
+          else
+            echo "used=no" >> "$GITHUB_OUTPUT"; echo "지도 사용 화면 없음 — 키 주입·로더 확인을 건너뛴다"
+          fi
+
+      - name: Verify Kakao Maps key injection
+        if: steps.map.outputs.used == 'yes'
+        working-directory: web
+        env:
+          VITE_KAKAO_MAP_JS_KEY: ${{ secrets.KAKAO_MAP_JS_KEY }}
+        run: |
+          if ! grep -rqlF -- "$VITE_KAKAO_MAP_JS_KEY" dist/assets/; then
+            echo "::error::Vite 빌드 산출물에 KAKAO_MAP_JS_KEY가 주입되지 않았습니다"
+            exit 1
+          fi
+          echo "카카오맵 키 빌드 주입 확인 완료 (값은 출력하지 않음)"
 
       - name: Assemble site
         run: |
@@ -105,6 +145,12 @@ jobs:
           fi
           if [ "$BASE" = "/" ]; then
             test -s _site/CNAME || { echo "::error::CNAME 이 산출물에 없습니다"; exit 1; }
+          fi
+
+          # 지도를 쓰는 화면이 있으면 SDK 로더가 산출물에 있어야 한다.
+          if [ '${{ steps.map.outputs.used }}' = yes ] && ! grep -rq 'dapi.kakao.com/v2/maps/sdk.js' _site/assets/; then
+            echo "::error::빌드 산출물에 카카오맵 JavaScript SDK 로더가 없습니다"
+            exit 1
           fi
 
           # ── 여기부터 가드. 하나라도 걸리면 배포하지 않는다. ──────────────
