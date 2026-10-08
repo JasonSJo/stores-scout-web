@@ -611,10 +611,27 @@ export default function ConsultationPage() {
               </p>
             </div>
           </section>
-          <section className="workspace-card property-empty" aria-labelledby="property-results-title">
-            <h2 id="property-results-title">조건에 맞는 매물</h2>
-            <p>현재 표시할 매물 데이터가 없습니다.</p>
-            <p className="muted-copy">공식 매물 공급처를 연결하면 입력한 지역·보증금·월세 조건에 맞는 매물이 이곳에 표시됩니다.</p>
+          <section className="workspace-card brand-sales-panel" aria-labelledby="brand-sales-title">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">BRAND SALES · INTERNAL</span>
+                <h2 id="brand-sales-title">브랜드 지점별 매출</h2>
+              </div>
+              <span className="internal-badge">사내 전용</span>
+            </div>
+            <p>
+              조건에 맞는 매물 대신, 내부 인증 결과창에서 브랜드별 지점 매출과
+              지점 중심 반경 500m 지도를 확인합니다.
+            </p>
+            <div className="brand-sales-panel-grid">
+              <div><strong>브랜드별 지점</strong><span>기간·시군구 필터</span></div>
+              <div><strong>매출·영수건수</strong><span>승인된 내부 자료만 표시</span></div>
+              <div><strong>반경 500m</strong><span>좌표가 확인된 지점만 지도 표시</span></div>
+            </div>
+            <p className="muted-copy">
+              공개 상담 페이지에는 매출 원본과 수치를 노출하지 않습니다. 관리자·운영자
+              로그인 후 내부 결과창에서 확인해 주세요.
+            </p>
           </section>
           <details className="workspace-card property-save">
             <summary>상담 내용 확인·저장·내려받기</summary>
