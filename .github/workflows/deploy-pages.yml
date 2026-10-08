@@ -112,7 +112,7 @@ jobs:
       - name: Detect map usage
         id: map
         run: |
-          if grep -rqE "from '@/components/property-map'" web/app web/src; then
+          if grep -rqE "from '@/components/(property-map|brand-location-map)'|loadKakaoMap" web/app web/src web/components; then
             echo "used=yes" >> "$GITHUB_OUTPUT"; echo "지도 사용 화면 있음"
           else
             echo "used=no" >> "$GITHUB_OUTPUT"; echo "지도 사용 화면 없음 — 키 주입·로더 확인을 건너뛴다"
