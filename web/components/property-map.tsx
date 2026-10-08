@@ -1,7 +1,15 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { loadKakaoMap, type KakaoMap, type KakaoMaps, type LatLng } from '@/lib/kakao-map';
-export type MapPoint = { id: string; latitude: number; longitude: number; label: string };
+export type MapPoint = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  label: string;
+  /** 내부 결과 API가 제공하는 반경. 공개 화면에서는 기본값을 넣지 않는다. */
+  radiusMeters?: number;
+  circleColor?: string;
+};
 export function PropertyMap({ points, selected, onSelect, onPick }: {
   points: MapPoint[]; selected?: string | null;
   onSelect?: (id: string) => void;
@@ -53,10 +61,26 @@ export function PropertyMap({ points, selected, onSelect, onPick }: {
       button.onclick = e => { e.stopPropagation(); callbacks.current.onSelect?.(p.id); };
       return new K.CustomOverlay({ map, position, content: button, yAnchor: 1, clickable: true });
     });
+    const circles = valid
+      .filter(p => Number.isFinite(p.radiusMeters) && (p.radiusMeters ?? 0) > 0)
+      .map(p => new K.Circle({
+        map,
+        center: new K.LatLng(p.latitude, p.longitude),
+        radius: p.radiusMeters ?? 500,
+        strokeWeight: 2,
+        strokeColor: p.circleColor ?? '#FF6D2D',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid',
+        fillColor: p.circleColor ?? '#FF6D2D',
+        fillOpacity: 0.08,
+      }));
     if (valid.length === 1) { map.setCenter(new K.LatLng(valid[0].latitude, valid[0].longitude)); map.setLevel(3); }
     else if (valid.length > 1) map.setBounds(bounds, 40, 40, 40, 40);
     else { map.setCenter(new K.LatLng(36.3, 127.8)); map.setLevel(13); }
-    return () => overlays.forEach(o => o.setMap(null));
+    return () => {
+      overlays.forEach(o => o.setMap(null));
+      circles.forEach(circle => circle.setMap(null));
+    };
   }, [points, ready]);
   useEffect(() => {
     const p = points.find(p => p.id === selected && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && p.latitude >= 33 && p.latitude <= 39 && p.longitude >= 124 && p.longitude <= 132);

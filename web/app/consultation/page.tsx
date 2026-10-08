@@ -38,7 +38,6 @@ import {
 import { REGIONS } from '@/lib/regions';
 import { getLowerRegions } from '@/lib/lower-regions';
 import { formatKoreanPhone } from '@/lib/phone';
-import { PropertyMap, type MapPoint } from '@/components/property-map';
 
 type Address = { zip: string; main: string; detail: string };
 type Area = { city: string; district: string; subdistrict: string };
@@ -103,47 +102,11 @@ const markets = [
 const money = (value: string) =>
   value === '' ? '미입력' : Number(value).toLocaleString('ko-KR') + '만 원';
 
-type Listing = {
-  id: string;
-  title: string;
-  address: string;
-  kind: '임대' | '매매';
-  area: number;
-  areaUnit: '㎡' | '평';
-  deposit: number;
-  rent: number;
-  premium: number;
-  latitude: number;
-  longitude: number;
-  sourceUrl: string;
-};
-
-// 네모에서 전달받은 테스트 실매물입니다. 좌표는 주소 기준 지도 표시용이며,
-// 실시간 매물 공급처 연동 전에는 이 한 건만 결과 목록에 노출합니다.
-const TEST_LISTINGS: Listing[] = [
-  {
-    id: 'nemo-921744',
-    title: '부산진구 당감로 98 · 1층 상가',
-    address: '부산광역시 부산진구 당감로 98',
-    kind: '임대',
-    area: 29.75,
-    areaUnit: '㎡',
-    deposit: 1500,
-    rent: 130,
-    premium: 5000,
-    // 카카오 주소 검색(당감로 98)으로 확인한 도로명 주소 좌표
-    latitude: 35.1703238168666,
-    longitude: 129.03828426244,
-    sourceUrl: 'https://www.nemoapp.kr/share/store/921744',
-  },
-];
-
 export default function ConsultationPage() {
   const [form, setForm] = useState<Consultation>(initial);
   const [addressTarget, setAddressTarget] = useState<'work' | null>(null);
   const [addressError, setAddressError] = useState('');
   const [complete, setComplete] = useState(false);
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const postcodeRef = useRef<HTMLDivElement>(null);
   const formRef = useRef(form);
@@ -178,7 +141,6 @@ export default function ConsultationPage() {
   ];
   const progress = filled.filter(Boolean).length;
   const total = Number(form.deposit || 0) + Number(form.premium || 0);
-  const selectedProperty = TEST_LISTINGS.find((property) => property.id === selectedPropertyId) || null;
   useEffect(() => {
     const script = document.createElement('script');
     script.src =
@@ -592,37 +554,6 @@ export default function ConsultationPage() {
       </div>
     );
   }
-  if (complete && selectedProperty)
-    return (
-      <div className="workspace-page property-review">
-        <header className="tool-header result-header">
-          <Link href="/" className="brand">
-            <span className="brand-mark"><span className="brand-monogram">스스</span></span>
-            <strong>스스닷컴<span>stores scout</span></strong>
-          </Link>
-          <nav className="tool-nav" aria-label="주요 메뉴"><Link href="/">홈</Link><Link href="/consultation" aria-current="page">상권분석</Link></nav>
-          <Button variant="outline" onClick={() => setSelectedPropertyId(null)}>
-            <ArrowLeft size={16} /> 매물 목록
-          </Button>
-        </header>
-        <main className="property-review-main">
-          <div className="workspace-heading">
-            <div>
-              <span className="eyebrow">PROPERTY · 선택 매물</span>
-              <h1>{selectedProperty.title}</h1>
-              <p>{selectedProperty.address} · {selectedProperty.kind} · {selectedProperty.area}{selectedProperty.areaUnit}</p>
-            </div>
-            <span className="example-badge">테스트 실매물 · 네모</span>
-          </div>
-          <section className="property-condition-summary">
-            <div><h2>매물 조건</h2><p>보증금 {money(String(selectedProperty.deposit))}</p><p>월세 {selectedProperty.kind === '임대' ? money(String(selectedProperty.rent)) : '해당 없음'}</p></div>
-            <div><h2>권리금 · 형태</h2><p>권리금 {money(String(selectedProperty.premium))}</p><p>{selectedProperty.kind} · {selectedProperty.area}{selectedProperty.areaUnit}</p></div>
-            <div><h2>출처</h2><p><a href={selectedProperty.sourceUrl} target="_blank" rel="noreferrer">네모 테스트 매물 원문</a></p><p>지도 좌표는 카카오 주소 검색 결과입니다. 주소와 실제 위치를 함께 확인하세요.</p></div>
-          </section>
-          <section className="workspace-card" aria-labelledby="detail-map-title"><h2 id="detail-map-title">선택 매물 위치</h2><PropertyMap points={TEST_LISTINGS.map((property) => ({ id: property.id, latitude: property.latitude, longitude: property.longitude, label: property.title }))} selected={selectedProperty.id} /></section>
-        </main>
-      </div>
-    );
   if (complete)
     return (
       <div className="workspace-page property-review">
@@ -680,13 +611,10 @@ export default function ConsultationPage() {
               </p>
             </div>
           </section>
-          <section className="workspace-card property-results" aria-labelledby="property-results-title">
-            <div className="card-title-row"><div><h2 id="property-results-title">조건에 맞는 매물</h2><p className="muted-copy">네모에서 전달받은 테스트 실매물입니다. 매물을 선택하면 조건과 위치를 자세히 볼 수 있습니다.</p></div><span className="example-badge">테스트 실매물 · 네모</span></div>
-            <div className="property-layout">
-              <div className="property-map-wrap"><PropertyMap points={TEST_LISTINGS.map((property) => ({ id: property.id, latitude: property.latitude, longitude: property.longitude, label: property.title }))} selected={selectedPropertyId} onSelect={setSelectedPropertyId} /></div>
-              <div className="property-list" aria-label="조건별 매물 목록">{TEST_LISTINGS.map((property) => <button type="button" className={`property-card ${selectedPropertyId === property.id ? 'selected' : ''}`} key={property.id} onClick={() => setSelectedPropertyId(property.id)}><span className="property-card-kicker">{property.kind} · {property.area}{property.areaUnit}</span><h3>{property.title}</h3><p>{property.address}</p><p className="property-price">보증금 {money(String(property.deposit))} / 월세 {money(String(property.rent))} / 권리금 {money(String(property.premium))}</p><span className="property-card-action">상세 분석 보기 <ArrowRight size={15} /></span></button>)}</div>
-            </div>
-            <p className="analysis-disclaimer">출처: <a href={TEST_LISTINGS[0].sourceUrl} target="_blank" rel="noreferrer">네모 테스트 매물 원문</a> · 지도 좌표는 카카오 주소 검색 결과이며, 정식 매물 API 연결 시 공급처 좌표로 교체됩니다.</p>
+          <section className="workspace-card property-empty" aria-labelledby="property-results-title">
+            <h2 id="property-results-title">조건에 맞는 매물</h2>
+            <p>현재 표시할 매물 데이터가 없습니다.</p>
+            <p className="muted-copy">공식 매물 공급처를 연결하면 입력한 지역·보증금·월세 조건에 맞는 매물이 이곳에 표시됩니다.</p>
           </section>
           <details className="workspace-card property-save">
             <summary>상담 내용 확인·저장·내려받기</summary>

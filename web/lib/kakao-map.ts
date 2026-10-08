@@ -13,6 +13,11 @@ export type KakaoMaps = {
   ZoomControl?: new () => unknown;
   ControlPosition?: { TOPRIGHT: unknown; RIGHT: unknown };
   CustomOverlay: new (options: { map: KakaoMap; position: LatLng; content: HTMLElement; yAnchor: number; clickable: boolean }) => { setMap(map: KakaoMap | null): void };
+  Circle: new (options: {
+    map: KakaoMap; center: LatLng; radius: number; strokeWeight?: number;
+    strokeColor?: string; strokeOpacity?: number; strokeStyle?: string;
+    fillColor?: string; fillOpacity?: number;
+  }) => { setMap(map: KakaoMap | null): void };
   event: { addListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void;
     removeListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void };
 };
