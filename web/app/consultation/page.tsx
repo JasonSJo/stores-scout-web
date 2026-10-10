@@ -175,20 +175,6 @@ export default function ConsultationPage() {
   const total = Number(form.deposit || 0) + Number(form.premium || 0);
   const publicMapRegion = 지역(form.areas.find((area) => area.city && area.district) ?? { city: '', district: '', subdistrict: '' });
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src =
-      'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
-    script.async = true;
-    script.onerror = () =>
-      setAddressError(
-        '주소 검색 서비스를 불러오지 못했습니다. 주소를 직접 입력하거나 잠시 후 다시 시도해 주세요.',
-      );
-    document.head.appendChild(script);
-    return () => {
-      script.remove();
-    };
-  }, []);
-  useEffect(() => {
     if (!addressTarget) return;
     let active = true;
     let attempts = 0;
