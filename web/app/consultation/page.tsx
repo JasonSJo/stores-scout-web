@@ -611,7 +611,7 @@ export default function ConsultationPage() {
             variant="outline"
             onClick={() => setAddressTarget('work')}
           >
-            <Search size={15} /> 주소 검색
+            <Search size={15} /> 카카오 우편번호 검색
           </Button>
         </div>
         <Input
@@ -709,7 +709,7 @@ export default function ConsultationPage() {
                   readOnly
                 />
                 <Button type="button" variant="outline" onClick={() => setAddressTarget('property')}>
-                  <Search size={15} /> 주소 검색
+                  <Search size={15} /> 카카오 우편번호 검색
                 </Button>
               </div>
               <div className="expected-sales-input-row expected-sales-address-row">
@@ -1300,14 +1300,14 @@ export default function ConsultationPage() {
       >
         <DialogContent className="postcode-dialog">
           <DialogTitle>
-            {addressTarget === 'property' ? '부동산 주소 검색' : '근무지 주소 검색'}
+            {addressTarget === 'property' ? '부동산 카카오 우편번호 검색' : '근무지 카카오 우편번호 검색'}
           </DialogTitle>
           <DialogDescription>
             도로명, 건물명 또는 지번으로 검색해 주세요.
           </DialogDescription>
           {addressError ? <p className="form-error">{addressError}</p> : null}
           <div ref={postcodeRef} className="postcode-frame" />
-          <p className="field-help">주소 검색 서비스: Kakao (Daum) 우편번호</p>
+          <p className="field-help">주소 검색 서비스: 카카오(다음) 우편번호</p>
         </DialogContent>
       </Dialog>
     </div>
