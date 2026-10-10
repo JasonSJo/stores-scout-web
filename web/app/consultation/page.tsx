@@ -56,6 +56,24 @@ type Consultation = {
   monthlyRentMax: string;
   funding: string;
   operation: string;
+  propertyAddress: string;
+  propertyZip: string;
+  propertyDetail: string;
+};
+type ExpectedSales = {
+  범위_m: number;
+  주소: string;
+  지역: { 시도: string; 시군구: string; 행정동: string };
+  유동인구: { 일평균: number; 기준: string; 기준월: string };
+  집계: { 브랜드: string; 구내_표본지점수: number; 구내_평균일매출원: number };
+  매출계수: number;
+  기본_일매출원: number;
+  브랜드보정률: number;
+  최종_일매출원: number;
+  최종_월매출원: number;
+  좌표?: { 위도: number; 경도: number };
+  출처: string[];
+  주의: string;
 };
 type PostcodeData = {
   zonecode: string;
@@ -69,7 +87,7 @@ declare global {
         oncomplete: (data: PostcodeData) => void;
         width: string;
         height: string;
-      }) => { embed: (element: HTMLElement) => void };
+      }) => { embed: (element: HTMLElement) => void; open?: () => void };
     };
   }
 }
@@ -91,6 +109,9 @@ const initial: Consultation = {
   monthlyRentMax: '',
   funding: '',
   operation: '',
+  propertyAddress: '',
+  propertyZip: '',
+  propertyDetail: '',
 };
 const markets = [
   { name: '오피스', icon: BriefcaseBusiness },
@@ -105,10 +126,13 @@ const money = (value: string) =>
 
 export default function ConsultationPage() {
   const [form, setForm] = useState<Consultation>(initial);
-  const [addressTarget, setAddressTarget] = useState<'work' | null>(null);
+  const [addressTarget, setAddressTarget] = useState<'work' | 'property' | null>(null);
   const [addressError, setAddressError] = useState('');
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
+  const [salesLoading, setSalesLoading] = useState(false);
+  const [salesError, setSalesError] = useState('');
+  const [salesResult, setSalesResult] = useState<ExpectedSales | null>(null);
   const postcodeRef = useRef<HTMLDivElement>(null);
   const formRef = useRef(form);
   formRef.current = form;
@@ -173,11 +197,18 @@ export default function ConsultationPage() {
             if (!active) return;
             setForm((prev) => ({
               ...prev,
-              work: {
-                ...prev.work,
-                zip: data.zonecode,
-                main: data.roadAddress || data.jibunAddress,
-              },
+              ...(addressTarget === 'property'
+                ? {
+                    propertyZip: data.zonecode,
+                    propertyAddress: data.roadAddress || data.jibunAddress,
+                  }
+                : {
+                    work: {
+                      ...prev.work,
+                      zip: data.zonecode,
+                      main: data.roadAddress || data.jibunAddress,
+                    },
+                  }),
             }));
             setAddressTarget(null);
           },
@@ -194,6 +225,50 @@ export default function ConsultationPage() {
       window.clearInterval(timer);
     };
   }, [addressTarget]);
+
+  async function fetchExpectedSales() {
+    const address = [form.propertyAddress, form.propertyDetail]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(' ');
+    if (address.length < 5) {
+      setSalesError('부동산 상세 주소를 입력해 주세요.');
+      return;
+    }
+    const origin = String(import.meta.env.VITE_STORE_SCOUT_API_ORIGIN || '').replace(/\/$/, '');
+    if (!origin) {
+      setSalesError('분석 서버가 아직 연결되지 않았습니다. 상담 담당자에게 문의해 주세요.');
+      return;
+    }
+    setSalesLoading(true);
+    setSalesError('');
+    try {
+      const response = await fetch(
+        `${origin}/api/public/expected-sales?address=${encodeURIComponent(address)}`,
+        { headers: { Accept: 'application/json' } },
+      );
+      const body = (await response.json()) as ExpectedSales | { detail?: string };
+      if (!response.ok) {
+        throw new Error('detail' in body && body.detail ? body.detail : '실제 데이터로 분석하지 못했습니다.');
+      }
+      setSalesResult(body as ExpectedSales);
+    } catch (cause) {
+      setSalesResult(null);
+      setSalesError(cause instanceof Error ? cause.message : '분석 중 오류가 발생했습니다.');
+    } finally {
+      setSalesLoading(false);
+    }
+  }
+  const expectedSalesPoint = salesResult?.좌표 && Number.isFinite(salesResult.좌표.위도) && Number.isFinite(salesResult.좌표.경도)
+    ? {
+        id: 'expected-sales-target',
+        latitude: salesResult.좌표.위도,
+        longitude: salesResult.좌표.경도,
+        label: `분석 대상 · 월 ${salesResult.최종_월매출원.toLocaleString('ko-KR')}원`,
+        radiusMeters: salesResult.범위_m,
+        circleColor: '#BB3E18',
+      }
+    : undefined;
 
   useEffect(() => {
     type Tool = {
@@ -613,7 +688,77 @@ export default function ConsultationPage() {
               </p>
             </div>
           </section>
-          <BrandLocationMap region={publicMapRegion} />
+          <section className="workspace-card expected-sales-card" aria-labelledby="expected-sales-title">
+            <div className="card-title-row">
+              <div>
+                <span className="eyebrow">PROPERTY ANALYSIS · REAL DATA</span>
+                <h2 id="expected-sales-title">예상매출 확인</h2>
+              </div>
+              <span className="public-map-badge">고객 공개용 집계</span>
+            </div>
+            <p className="expected-sales-intro">
+              부동산 상세 주소를 입력하면 해당 행정동의 유동인구와 구 단위 컴포즈커피 집계자료로 계산합니다.
+              지점별 원본 매출과 고객 개인정보는 화면에 표시하지 않습니다.
+            </p>
+            <div className="expected-sales-form">
+              <label htmlFor="property-address">부동산 상세 주소</label>
+              <div className="expected-sales-input-row postcode-input-row">
+                <input aria-label="부동산 우편번호" value={form.propertyZip} placeholder="우편번호" readOnly />
+                <Button type="button" variant="outline" onClick={() => setAddressTarget('property')}>
+                  <Search size={15} /> 우편번호 검색
+                </Button>
+              </div>
+              <div className="expected-sales-input-row expected-sales-address-row">
+                <input
+                  id="property-address"
+                  value={form.propertyAddress}
+                  onChange={(event) => {
+                    update('propertyAddress', event.target.value);
+                    setSalesResult(null);
+                    setSalesError('');
+                  }}
+                  placeholder="도로명 또는 지번 주소"
+                  maxLength={200}
+                />
+              </div>
+              <input
+                className="expected-sales-detail-input"
+                aria-label="부동산 상세주소"
+                value={form.propertyDetail}
+                onChange={(event) => {
+                  update('propertyDetail', event.target.value);
+                  setSalesResult(null);
+                  setSalesError('');
+                }}
+                placeholder="상세주소 (선택)"
+                maxLength={120}
+              />
+              <Button type="button" onClick={fetchExpectedSales} disabled={salesLoading}>
+                {salesLoading ? '분석 중…' : '예상매출 확인하기'}
+              </Button>
+              {salesError ? <p className="form-error" role="alert">{salesError}</p> : null}
+            </div>
+            {salesResult ? (
+              <div className="expected-sales-result" aria-live="polite">
+                <div className="expected-sales-highlight">
+                  <span>브랜드 보정 후 예상 월매출</span>
+                  <strong>{salesResult.최종_월매출원.toLocaleString('ko-KR')}원</strong>
+                  <small>일 예상 {salesResult.최종_일매출원.toLocaleString('ko-KR')}원</small>
+                </div>
+                <dl className="expected-sales-grid">
+                  <div><dt>대상 지역</dt><dd>{salesResult.지역.시군구} {salesResult.지역.행정동}</dd></div>
+                  <div><dt>500m 분석 반경</dt><dd>{salesResult.유동인구.일평균.toLocaleString('ko-KR')}명/일</dd></div>
+                  <div><dt>구 내 표본 지점</dt><dd>{salesResult.집계.구내_표본지점수}개</dd></div>
+                  <div><dt>매출계수</dt><dd>{salesResult.매출계수.toLocaleString('ko-KR')}원/명</dd></div>
+                  <div><dt>보정 전 일매출</dt><dd>{salesResult.기본_일매출원.toLocaleString('ko-KR')}원</dd></div>
+                  <div><dt>적용 보정률</dt><dd>{Math.round(salesResult.브랜드보정률 * 100)}%</dd></div>
+                </dl>
+                <p className="expected-sales-note">{salesResult.주의}</p>
+                <p className="expected-sales-source">출처: {salesResult.출처.join(' · ')}{salesResult.유동인구.기준월 ? ` · 기준월 ${salesResult.유동인구.기준월}` : ''}</p>
+              </div>
+            ) : null}
+          </section>
+          <BrandLocationMap region={publicMapRegion} highlight={expectedSalesPoint} />
           <details className="workspace-card property-save">
             <summary>상담 내용 확인·저장·내려받기</summary>
             <dl className="complete-summary">
@@ -1138,9 +1283,9 @@ export default function ConsultationPage() {
             </div>
           </div>
           <p className="data-disclaimer">
-            매물 조회와 유동인구는 아직 연결되지 않았습니다.
+            상담 결과에서 부동산 상세 주소를 입력하면 공개 집계 기준의 유동인구·매출 분석을 조회할 수 있습니다.
             <br />
-            유동인구는 별도 데이터 연결이 필요합니다.
+            원본 지점별 매출과 고객 개인정보는 공개 결과에 포함하지 않습니다.
           </p>
         </aside>
       </div>
@@ -1152,7 +1297,7 @@ export default function ConsultationPage() {
       >
         <DialogContent className="postcode-dialog">
           <DialogTitle>
-            근무지 주소 검색
+            {addressTarget === 'property' ? '부동산 주소 검색' : '근무지 주소 검색'}
           </DialogTitle>
           <DialogDescription>
             도로명, 건물명 또는 지번으로 검색해 주세요.
