@@ -82,6 +82,13 @@ type PostcodeData = {
 };
 declare global {
   interface Window {
+    kakao?: {
+      Postcode: new (options: {
+        oncomplete: (data: PostcodeData) => void;
+        width: string;
+        height: string;
+      }) => { embed: (element: HTMLElement) => void; open?: () => void };
+    };
     daum?: {
       Postcode: new (options: {
         oncomplete: (data: PostcodeData) => void;
@@ -170,7 +177,7 @@ export default function ConsultationPage() {
   useEffect(() => {
     const script = document.createElement('script');
     script.src =
-      'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
     script.async = true;
     script.onerror = () =>
       setAddressError(
@@ -187,10 +194,11 @@ export default function ConsultationPage() {
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts++;
-      if (window.daum?.Postcode && postcodeRef.current) {
+      const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
+      if (Postcode && postcodeRef.current) {
         window.clearInterval(timer);
         setAddressError('');
-        new window.daum.Postcode({
+        new Postcode({
           width: '100%',
           height: '100%',
           oncomplete(data) {
