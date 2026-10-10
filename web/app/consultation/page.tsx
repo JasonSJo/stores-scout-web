@@ -82,7 +82,7 @@ type PostcodeData = {
 };
 declare global {
   interface Window {
-    kakao?: {
+    daum?: {
       Postcode: new (options: {
         oncomplete: (data: PostcodeData) => void;
         width: string;
@@ -187,10 +187,10 @@ export default function ConsultationPage() {
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts++;
-      if (window.kakao?.Postcode && postcodeRef.current) {
+      if (window.daum?.Postcode && postcodeRef.current) {
         window.clearInterval(timer);
         setAddressError('');
-        new window.kakao.Postcode({
+        new window.daum.Postcode({
           width: '100%',
           height: '100%',
           oncomplete(data) {
