@@ -170,7 +170,7 @@ export default function ConsultationPage() {
   useEffect(() => {
     const script = document.createElement('script');
     script.src =
-      'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+      'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
     script.async = true;
     script.onerror = () =>
       setAddressError(
