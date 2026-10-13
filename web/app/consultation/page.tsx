@@ -661,7 +661,7 @@ export default function ConsultationPage() {
               <h2>가격 상한</h2>
               <p>매매 총예산 {money(form.saleBudget)}</p>
               <p>
-                임대 보증금 {money(form.deposit)} / 권리금 {money(form.premium)}{' '}
+                보증금 {money(form.deposit)} / 권리금 {money(form.premium)}{' '}
                 / 월세 {money(form.monthlyRentMax)}
               </p>
             </div>
@@ -1110,7 +1110,7 @@ export default function ConsultationPage() {
                       min="0"
                       max="10000000"
                       step="1"
-                      placeholder="임대 검색 시 입력"
+                      placeholder="월세 조건이 있으면 입력"
                       value={form.monthlyRentMax}
                       onChange={(e) => update('monthlyRentMax', e.target.value)}
                     />
