@@ -98,6 +98,54 @@ declare global {
     };
   }
 }
+
+/**
+ * 카카오 우편번호 위젯은 정적 페이지에서 먼저 로드하지만, CDN이 늦게
+ * 응답하거나 일시적으로 한 호스트가 막히는 경우를 대비해 공식 CDN을
+ * 순서대로 한 번 더 시도한다. 인증키는 필요하지 않은 주소검색 위젯이다.
+ */
+function loadPostcodeScript(): Promise<void> {
+  if (window.daum?.Postcode || window.kakao?.Postcode) return Promise.resolve();
+  const sources = [
+    'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js',
+    'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js',
+  ];
+  const existing = document.querySelector<HTMLScriptElement>('script[data-store-scout-postcode]');
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      const started = Date.now();
+      const timer = window.setInterval(() => {
+        if (window.daum?.Postcode || window.kakao?.Postcode) {
+          window.clearInterval(timer);
+          resolve();
+        } else if (Date.now() - started > 7000) {
+          window.clearInterval(timer);
+          reject(new Error('주소 검색 스크립트가 응답하지 않습니다.'));
+        }
+      }, 100);
+    });
+  }
+  return new Promise((resolve, reject) => {
+    let index = 0;
+    const append = () => {
+      const script = document.createElement('script');
+      script.dataset.storeScoutPostcode = 'true';
+      script.src = sources[index];
+      script.async = true;
+      script.onload = () => {
+        if (window.daum?.Postcode || window.kakao?.Postcode) resolve();
+        else if (index < sources.length - 1) { index += 1; append(); }
+        else reject(new Error('주소 검색 위젯을 초기화하지 못했습니다.'));
+      };
+      script.onerror = () => {
+        if (index < sources.length - 1) { index += 1; append(); }
+        else reject(new Error('주소 검색 CDN에 연결하지 못했습니다.'));
+      };
+      document.head.appendChild(script);
+    };
+    append();
+  });
+}
 const initial: Consultation = {
   name: '',
   phone: '',
@@ -177,46 +225,43 @@ export default function ConsultationPage() {
   useEffect(() => {
     if (!addressTarget) return;
     let active = true;
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      attempts++;
+    loadPostcodeScript().then(() => {
+      if (!active || !postcodeRef.current) return;
       const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
-      if (Postcode && postcodeRef.current) {
-        window.clearInterval(timer);
-        setAddressError('');
-        new Postcode({
-          width: '100%',
-          height: '100%',
-          oncomplete(data) {
-            if (!active) return;
-            setForm((prev) => ({
-              ...prev,
-              ...(addressTarget === 'property'
-                ? {
-                    propertyZip: data.zonecode,
-                    propertyAddress: data.roadAddress || data.jibunAddress,
-                  }
-                : {
-                    work: {
-                      ...prev.work,
-                      zip: data.zonecode,
-                      main: data.roadAddress || data.jibunAddress,
-                    },
-                  }),
-            }));
-            setAddressTarget(null);
-          },
-        }).embed(postcodeRef.current);
-      } else if (attempts > 50) {
-        window.clearInterval(timer);
-        setAddressError(
-          '주소 검색을 연결할 수 없습니다. 창을 닫고 주소를 직접 입력해 주세요.',
-        );
-      }
-    }, 150);
+      if (!Postcode) throw new Error('주소 검색 위젯을 초기화하지 못했습니다.');
+      setAddressError('');
+      new Postcode({
+        width: '100%',
+        height: '100%',
+        oncomplete(data) {
+          if (!active) return;
+          setForm((prev) => ({
+            ...prev,
+            ...(addressTarget === 'property'
+              ? {
+                  propertyZip: data.zonecode,
+                  propertyAddress: data.roadAddress || data.jibunAddress,
+                }
+              : {
+                  work: {
+                    ...prev.work,
+                    zip: data.zonecode,
+                    main: data.roadAddress || data.jibunAddress,
+                  },
+                }),
+          }));
+          setAddressTarget(null);
+        },
+      }).embed(postcodeRef.current);
+    }).catch((cause) => {
+      if (active) setAddressError(
+        cause instanceof Error
+          ? `${cause.message} 창을 닫고 주소를 직접 입력해 주세요.`
+          : '주소 검색을 연결할 수 없습니다. 창을 닫고 주소를 직접 입력해 주세요.',
+      );
+    });
     return () => {
       active = false;
-      window.clearInterval(timer);
     };
   }, [addressTarget]);
 
@@ -239,9 +284,14 @@ export default function ConsultationPage() {
     try {
       const response = await fetch(
         `${origin}/api/public/expected-sales?address=${encodeURIComponent(address)}`,
-        { headers: { Accept: 'application/json' } },
+        { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(20000) },
       );
-      const body = (await response.json()) as ExpectedSales | { detail?: string };
+      const contentType = response.headers.get('content-type') || '';
+      const body = contentType.includes('application/json')
+        ? (await response.json()) as ExpectedSales | { detail?: string }
+        : { detail: response.status === 302 || response.url.includes('login')
+          ? '공개 분석 API가 로그인 보호 화면으로 연결되었습니다. 운영 서버에서 /api/public 경로를 공개 읽기 전용으로 허용해 주세요.'
+          : '분석 서버가 JSON 결과를 반환하지 않았습니다.' };
       if (!response.ok) {
         throw new Error('detail' in body && body.detail ? body.detail : '실제 데이터로 분석하지 못했습니다.');
       }
