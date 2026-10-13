@@ -623,6 +623,7 @@ export default function ConsultationPage() {
           <Button
             type="button"
             variant="outline"
+            onPointerDown={() => setAddressTarget('work')}
             onClick={() => setAddressTarget('work')}
           >
             <Search size={15} /> 우편번호 검색
@@ -717,7 +718,7 @@ export default function ConsultationPage() {
               <label htmlFor="property-address">부동산 상세 주소</label>
               <div className="property-address-input-row postcode-input-row">
                 <input aria-label="부동산 우편번호" value={form.propertyZip} placeholder="우편번호" readOnly />
-                <Button type="button" variant="outline" onClick={() => setAddressTarget('property')}>
+              <Button type="button" variant="outline" onPointerDown={() => setAddressTarget('property')} onClick={() => setAddressTarget('property')}>
                   <Search size={15} /> 우편번호 검색
                 </Button>
               </div>
