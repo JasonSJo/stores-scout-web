@@ -98,13 +98,11 @@ jobs:
           echo "카카오맵 JavaScript 키 확인 완료 (값은 출력하지 않음)"
 
       - name: Build
-        # 지도용 브라우저 키와 고객 공개 집계 API 주소만 전달한다.
-        # API 주소에는 인증키·원본 매출이 들어가지 않는다.
+        # 공개 페이지는 외부 API를 호출하지 않는다. 지도용 브라우저 키만 전달한다.
         working-directory: web
         env:
           STORE_SCOUT_BASE: ${{ steps.base.outputs.base }}
           VITE_KAKAO_MAP_JS_KEY: ${{ secrets.KAKAO_MAP_JS_KEY }}
-          VITE_STORE_SCOUT_API_ORIGIN: ${{ secrets.STORE_SCOUT_API_ORIGIN }}
         run: npm run build
 
       # 지도를 쓰는 화면이 없으면 Vite 가 로더를 통째로 빼므로 키도 로더도 산출물에 없다.
@@ -157,7 +155,7 @@ jobs:
           # ── 여기부터 가드. 하나라도 걸리면 배포하지 않는다. ──────────────
           # 공개 화면은 원본 지점별 매출·원가 모델을 담지 않는다. 서버가 계산한
           # 익명 집계 결과만 조회하며, 아래 내부 모델 필드와 키는 계속 금지한다.
-          BACKEND_WORDS='고정인건비|대출비율|연금리|리스_월|변동비율|좌석수_기본|흡인력|잔존율|등시선|m5_verdict|quick_site|설정\.yaml|gross_sales_won|net_sales_won|operating_days|SBIZ_.*CERT_KEY|KAKAO_REST_API_KEY'
+          BACKEND_WORDS='고정인건비|대출비율|연금리|리스_월|변동비율|좌석수_기본|흡인력|잔존율|등시선|m5_verdict|quick_site|설정\.yaml|예상매출|예상 월매출|예상 연매출|매출계수|기준계수|gross_sales_won|net_sales_won|operating_days|SBIZ_.*CERT_KEY|KAKAO_REST_API_KEY|expected-sales'
           if grep -rqE "$BACKEND_WORDS" _site/; then
             echo "::error::백엔드 값·이름이 공개 산출물에 있습니다"
             grep -rhoE "$BACKEND_WORDS" _site/ | sort -u | head -20
@@ -171,8 +169,11 @@ jobs:
             exit 1
           fi
 
-          # 상담 결과의 상세 주소만 공개 집계 API로 전송한다. XMLHttpRequest·Beacon·
-          # WebSocket은 계속 금지한다.
+          # 공개 번들에는 내부 API 주소나 외부 전송 코드가 들어가면 안 된다.
+          if grep -rqE "api\\.stores-scout\\.com" _site/assets/; then
+            echo "::error::내부 API 주소가 공개 번들에 있습니다"
+            exit 1
+          fi
           if grep -rq "XMLHttpRequest\|sendBeacon\|new WebSocket" _site/assets/; then
             echo "::error::승인되지 않은 외부 전송 코드가 있습니다"
             exit 1
