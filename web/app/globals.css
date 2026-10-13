@@ -242,6 +242,6 @@ footer { max-width:1240px; color:#9aa2ac; border-color:#e4e7eb; }
 @media(max-width:600px){.hero{min-height:500px;padding:56px 20px 60px}.hero-proof{padding:14px 18px 32px;gap:10px;font-size:10px;white-space:nowrap}}
 
 /* 주소 검색은 결과 화면에서도 포털 지연 없이 표시되는 자체 오버레이를 사용한다. */
-.postcode-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;background:#1f1712a8}
+.postcode-overlay{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:20px;background:#1f1712a8}.postcode-overlay.open{display:grid}
 .postcode-dialog{width:min(500px,100%);max-height:calc(100vh - 40px);overflow:auto;border-radius:14px;padding:24px;background:#fff;box-shadow:0 20px 70px #1f171255}
 .postcode-dialog h2{margin:0;font-size:20px;letter-spacing:-.5px}.postcode-dialog-description{margin:9px 0 14px;font-size:12px;line-height:1.7;color:#85786c}.postcode-dialog [data-slot=button]{margin-top:12px}

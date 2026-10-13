@@ -1285,8 +1285,11 @@ export default function ConsultationPage() {
           </p>
         </aside>
       </div>
-      {addressTarget ? (
-        <div className="postcode-overlay" role="presentation">
+      <div
+        className={`postcode-overlay ${addressTarget ? 'open' : ''}`}
+        role="presentation"
+        aria-hidden={!addressTarget}
+      >
           <section
             className="postcode-dialog"
             role="dialog"
@@ -1307,8 +1310,7 @@ export default function ConsultationPage() {
               닫기
             </Button>
           </section>
-        </div>
-      ) : null}
+      </div>
     </div>
   );
 }
