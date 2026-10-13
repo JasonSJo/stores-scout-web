@@ -162,7 +162,6 @@ export default function ConsultationPage() {
   const [form, setForm] = useState<Consultation>(initial);
   const [addressTarget, setAddressTarget] = useState<'work' | 'property' | null>(null);
   const [addressError, setAddressError] = useState('');
-  const [salesCheckMessage, setSalesCheckMessage] = useState('');
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
   const postcodeRef = useRef<HTMLDivElement>(null);
@@ -257,7 +256,6 @@ export default function ConsultationPage() {
                       },
                     }),
               }));
-              if (target === 'property') setSalesCheckMessage('');
               setAddressTarget(null);
             },
           }).embed(targetFrame);
@@ -272,15 +270,14 @@ export default function ConsultationPage() {
     };
   }, [addressTarget]);
 
-  function 분석결과확인() {
-    if (!form.propertyAddress.trim()) {
-      setSalesCheckMessage('먼저 우편번호 검색으로 검토할 주소를 입력해 주세요.');
-      return;
-    }
-    setSalesCheckMessage(
-      '주소가 입력되었습니다. 공식 분석 수치는 로그인한 내부 운영 화면에서 확인합니다.',
-    );
-  }
+  useEffect(() => {
+    if (!addressTarget) return;
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAddressTarget(null);
+    };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [addressTarget]);
 
   useEffect(() => {
     type Tool = {
@@ -743,14 +740,6 @@ export default function ConsultationPage() {
                 placeholder="상세주소 (선택)"
                 maxLength={120}
               />
-              <Button type="button" onClick={분석결과확인}>
-                <ClipboardCheck size={15} /> 분석 결과 확인
-              </Button>
-              {salesCheckMessage ? (
-                <p className="field-help analysis-status" role="status">
-                  <Info size={13} /> {salesCheckMessage}
-                </p>
-              ) : null}
               <p className="field-help"><Info size={13} /> 주소 입력 후 상담카드 CSV를 내려받으면 내부 운영 화면에서 분석을 이어갈 수 있습니다.</p>
             </div>
           </section>
