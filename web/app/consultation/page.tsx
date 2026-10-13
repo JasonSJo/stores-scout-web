@@ -1286,7 +1286,7 @@ export default function ConsultationPage() {
         </aside>
       </div>
       {addressTarget ? (
-        <div className="postcode-overlay" role="presentation" onClick={() => setAddressTarget(null)}>
+        <div className="postcode-overlay" role="presentation">
           <section
             className="postcode-dialog"
             role="dialog"
