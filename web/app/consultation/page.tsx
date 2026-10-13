@@ -275,13 +275,13 @@ export default function ConsultationPage() {
     };
   }, [addressTarget]);
 
-  function 예상매출확인() {
+  function 분석결과확인() {
     if (!form.propertyAddress.trim()) {
       setSalesCheckMessage('먼저 우편번호 검색으로 검토할 주소를 입력해 주세요.');
       return;
     }
     setSalesCheckMessage(
-      '주소가 입력되었습니다. 예상매출 수치는 공개 화면에 임의로 표시하지 않으며, 로그인한 내부 운영 화면에서 공식 데이터로 확인합니다.',
+      '주소가 입력되었습니다. 공식 분석 수치는 로그인한 내부 운영 화면에서 확인합니다.',
     );
   }
 
@@ -745,8 +745,8 @@ export default function ConsultationPage() {
                 placeholder="상세주소 (선택)"
                 maxLength={120}
               />
-              <Button type="button" onClick={예상매출확인}>
-                <ClipboardCheck size={15} /> 예상매출 확인
+              <Button type="button" onClick={분석결과확인}>
+                <ClipboardCheck size={15} /> 분석 결과 확인
               </Button>
               {salesCheckMessage ? (
                 <p className="field-help analysis-status" role="status">
