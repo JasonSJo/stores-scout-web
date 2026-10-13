@@ -4,7 +4,6 @@ import { createRoot } from 'react-dom/client';
 import '@fontsource-variable/geist';
 import 'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css';
 import '../app/globals.css';
-import '../app/landing.css';
 import Home from '../app/page';
 
 createRoot(document.getElementById('root')!).render(<StrictMode><Home/></StrictMode>);

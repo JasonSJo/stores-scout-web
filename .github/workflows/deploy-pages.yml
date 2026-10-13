@@ -153,8 +153,10 @@ jobs:
           fi
 
           # ── 여기부터 가드. 하나라도 걸리면 배포하지 않는다. ──────────────
-          # 공개 화면은 원본 지점별 매출·원가 모델을 담지 않는다. 서버가 계산한
-          # 익명 집계 결과만 조회하며, 아래 내부 모델 필드와 키는 계속 금지한다.
+          # 공개 화면은 서버를 부르지 않고 매출을 계산하지도 보여 주지도 않는다.
+          # 예상매출·매출계수가 가맹희망자 화면에 찍히면 예상매출액 산정서와 섞인다.
+          # 값만 막으면 이름을 바꿔 빠져나가므로 이름(내부 모델·원본 매출 필드·서버 키·경로)으로 막는다.
+          # 변수 이름은 ASCII 여야 한다 — bash 는 한글 변수명을 받지 않는다.
           BACKEND_WORDS='고정인건비|대출비율|연금리|리스_월|변동비율|좌석수_기본|흡인력|잔존율|등시선|m5_verdict|quick_site|설정\.yaml|예상매출|예상 월매출|예상 연매출|매출계수|기준계수|gross_sales_won|net_sales_won|operating_days|SBIZ_.*CERT_KEY|KAKAO_REST_API_KEY|expected-sales'
           if grep -rqE "$BACKEND_WORDS" _site/; then
             echo "::error::백엔드 값·이름이 공개 산출물에 있습니다"
@@ -169,7 +171,8 @@ jobs:
             exit 1
           fi
 
-          # 공개 번들에는 내부 API 주소나 외부 전송 코드가 들어가면 안 된다.
+          # 상담 화면은 개인정보를 받는다. 공개 번들이 백엔드를 부르거나 외부로 보내면
+          # '이 브라우저를 벗어나지 않는다' 는 약속이 거짓이 된다.
           if grep -rqE "api\.stores-scout\.com" _site/assets/; then
             echo "::error::내부 API 주소가 공개 번들에 있습니다"
             exit 1
