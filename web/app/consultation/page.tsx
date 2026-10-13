@@ -1281,9 +1281,9 @@ export default function ConsultationPage() {
             </div>
           </div>
           <p className="data-disclaimer">
-            상담 결과에서 부동산 상세 주소를 입력하면 공개 집계 기준의 유동인구·매출 분석을 조회할 수 있습니다.
+            입력한 값은 이 브라우저를 벗어나지 않습니다.
             <br />
-            원본 지점별 매출과 고객 개인정보는 공개 결과에 포함하지 않습니다.
+            유동인구·매출 분석은 이 화면에서 제공하지 않습니다.
           </p>
         </aside>
       </div>
