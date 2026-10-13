@@ -29,12 +29,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { NativeSelect } from '@/components/ui/native-select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
 import { REGIONS } from '@/lib/regions';
 import { getLowerRegions } from '@/lib/lower-regions';
 import { formatKoreanPhone } from '@/lib/phone';
@@ -1290,24 +1284,30 @@ export default function ConsultationPage() {
           </p>
         </aside>
       </div>
-      <Dialog
-        open={Boolean(addressTarget)}
-        onOpenChange={(open) => {
-          if (!open) setAddressTarget(null);
-        }}
-      >
-        <DialogContent className="postcode-dialog">
-          <DialogTitle>
-            {addressTarget === 'property' ? '부동산 주소 검색' : '근무지 주소 검색'}
-          </DialogTitle>
-          <DialogDescription>
-            도로명, 건물명 또는 지번으로 검색해 주세요.
-          </DialogDescription>
-          {addressError ? <p className="form-error">{addressError}</p> : null}
-          <div ref={postcodeRef} data-store-scout-postcode-frame className="postcode-frame" />
-          <p className="field-help">주소 검색 서비스: 카카오(다음) 우편번호</p>
-        </DialogContent>
-      </Dialog>
+      {addressTarget ? (
+        <div className="postcode-overlay" role="presentation" onClick={() => setAddressTarget(null)}>
+          <section
+            className="postcode-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="postcode-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="postcode-dialog-title">
+              {addressTarget === 'property' ? '부동산 주소 검색' : '근무지 주소 검색'}
+            </h2>
+            <p className="postcode-dialog-description">
+              도로명, 건물명 또는 지번으로 검색해 주세요.
+            </p>
+            {addressError ? <p className="form-error">{addressError}</p> : null}
+            <div ref={postcodeRef} data-store-scout-postcode-frame className="postcode-frame" />
+            <p className="field-help">주소 검색 서비스: 카카오(다음) 우편번호</p>
+            <Button type="button" variant="outline" onClick={() => setAddressTarget(null)}>
+              닫기
+            </Button>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
