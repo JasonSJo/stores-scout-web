@@ -226,20 +226,23 @@ export default function ConsultationPage() {
     };
     const mount = () => {
       if (!active) return;
-      const frame = postcodeRef.current;
+      const frame = postcodeRef.current
+        ?? document.querySelector<HTMLDivElement>('[data-store-scout-postcode-frame]');
       // Base UI Dialog의 포털이 붙은 다음 프레임에 ref가 생길 수 있어 재시도한다.
       if (!frame) {
-        if (attempts++ < 40) retryTimer = window.setTimeout(mount, 50);
+        if (attempts++ < 200) retryTimer = window.setTimeout(mount, 50);
         else showError(new Error('주소 검색 창을 표시할 영역을 찾지 못했습니다.'));
         return;
       }
       void loadPostcodeScript()
         .then(() => {
-          if (!active || !postcodeRef.current) return;
+          const targetFrame = postcodeRef.current
+            ?? document.querySelector<HTMLDivElement>('[data-store-scout-postcode-frame]');
+          if (!active || !targetFrame) return;
           const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
           if (!Postcode) throw new Error('주소 검색 위젯을 초기화하지 못했습니다.');
           setAddressError('');
-          postcodeRef.current.replaceChildren();
+          targetFrame.replaceChildren();
           new Postcode({
             width: '100%',
             height: '100%',
@@ -263,7 +266,7 @@ export default function ConsultationPage() {
               if (target === 'property') setSalesCheckMessage('');
               setAddressTarget(null);
             },
-          }).embed(postcodeRef.current);
+          }).embed(targetFrame);
         })
         .catch(showError);
     };
@@ -1301,7 +1304,7 @@ export default function ConsultationPage() {
             도로명, 건물명 또는 지번으로 검색해 주세요.
           </DialogDescription>
           {addressError ? <p className="form-error">{addressError}</p> : null}
-          <div ref={postcodeRef} className="postcode-frame" />
+          <div ref={postcodeRef} data-store-scout-postcode-frame className="postcode-frame" />
           <p className="field-help">주소 검색 서비스: 카카오(다음) 우편번호</p>
         </DialogContent>
       </Dialog>
