@@ -170,7 +170,7 @@ jobs:
           fi
 
           # 공개 번들에는 내부 API 주소나 외부 전송 코드가 들어가면 안 된다.
-          if grep -rqE "api\\.stores-scout\\.com" _site/assets/; then
+          if grep -rqE "api\.stores-scout\.com" _site/assets/; then
             echo "::error::내부 API 주소가 공개 번들에 있습니다"
             exit 1
           fi
