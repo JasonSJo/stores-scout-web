@@ -12,7 +12,7 @@ export type KakaoMaps = {
   Map: new (host: HTMLElement, options: { center: LatLng; level: number; scrollwheel: boolean }) => KakaoMap;
   ZoomControl?: new () => unknown;
   ControlPosition?: { TOPRIGHT: unknown; RIGHT: unknown };
-  CustomOverlay: new (options: { map: KakaoMap; position: LatLng; content: HTMLElement; yAnchor: number; clickable: boolean }) => { setMap(map: KakaoMap | null): void };
+  CustomOverlay: new (options: { map: KakaoMap; position: LatLng; content: HTMLElement; yAnchor: number }) => { setMap(map: KakaoMap | null): void };
   Circle: new (options: {
     map: KakaoMap; center: LatLng; radius: number; strokeWeight?: number;
     strokeColor?: string; strokeOpacity?: number; strokeStyle?: string;
@@ -31,8 +31,6 @@ export type KakaoMaps = {
     };
     Status: { OK: string };
   };
-  event: { addListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void;
-    removeListener(target: KakaoMap, type: string, cb: (e: { latLng: LatLng }) => void): void };
 };
 // The address-search widget also declares window.kakao; do not overwrite its type.
 const currentMaps = () => (window as unknown as { kakao?: { maps?: KakaoMaps } }).kakao?.maps;

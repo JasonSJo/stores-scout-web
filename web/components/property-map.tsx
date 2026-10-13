@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { loadKakaoMap, type KakaoMap, type KakaoMaps, type LatLng } from '@/lib/kakao-map';
+import { loadKakaoMap, type KakaoMap, type KakaoMaps } from '@/lib/kakao-map';
 export type MapPoint = {
   id: string;
   latitude: number;
@@ -10,18 +10,14 @@ export type MapPoint = {
   radiusMeters?: number;
   circleColor?: string;
 };
-export function PropertyMap({ points, selected, onSelect, onPick, mapLabel, emptyMessage }: {
-  points: MapPoint[]; selected?: string | null;
-  onSelect?: (id: string) => void;
-  onPick?: (latitude: number, longitude: number) => void;
+export function PropertyMap({ points, mapLabel, emptyMessage }: {
+  points: MapPoint[];
   mapLabel?: string;
   emptyMessage?: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const instance = useRef<KakaoMap | null>(null);
   const library = useRef<KakaoMaps | null>(null);
-  const callbacks = useRef({ onSelect, onPick });
-  callbacks.current = { onSelect, onPick };
   const [ready, setReady] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
@@ -36,14 +32,9 @@ export function PropertyMap({ points, selected, onSelect, onPick, mapLabel, empt
       if (K.ZoomControl && K.ControlPosition) {
         map.addControl(new K.ZoomControl(), K.ControlPosition.RIGHT);
       }
-      const click = (e: { latLng: LatLng }) => {
-        const lat = e.latLng.getLat(), lng = e.latLng.getLng();
-        if (lat >= 33 && lat <= 39 && lng >= 124 && lng <= 132) callbacks.current.onPick?.(lat, lng);
-      };
-      K.event.addListener(map, 'click', click);
       const observer = new ResizeObserver(() => map.relayout());
       observer.observe(element);
-      dispose = () => { observer.disconnect(); K.event.removeListener(map, 'click', click); element.replaceChildren(); };
+      dispose = () => { observer.disconnect(); element.replaceChildren(); };
       setReady(true);
     }).catch(e => { if (live) setError(e instanceof Error ? e.message : '카카오맵을 불러오지 못했습니다.'); });
     return () => { live = false; dispose?.(); instance.current = null; };
@@ -56,12 +47,10 @@ export function PropertyMap({ points, selected, onSelect, onPick, mapLabel, empt
     const overlays = valid.map(p => {
       const position = new K.LatLng(p.latitude, p.longitude);
       bounds.extend(position);
-      const button = document.createElement('button');
-      button.type = 'button'; button.textContent = p.label; button.title = p.label;
-      button.setAttribute('aria-label', p.label);
-      button.style.cssText = 'background:#FF6D2D;color:white;border:2px solid #BB3E18;border-radius:16px;padding:6px 10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;font-size:13px;';
-      button.onclick = e => { e.stopPropagation(); callbacks.current.onSelect?.(p.id); };
-      return new K.CustomOverlay({ map, position, content: button, yAnchor: 1, clickable: true });
+      const label = document.createElement('span');
+      label.textContent = p.label; label.title = p.label;
+      label.style.cssText = 'display:block;background:#FF6D2D;color:white;border:2px solid #BB3E18;border-radius:16px;padding:6px 10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;';
+      return new K.CustomOverlay({ map, position, content: label, yAnchor: 1 });
     });
     const circles = valid
       .filter(p => Number.isFinite(p.radiusMeters) && (p.radiusMeters ?? 0) > 0)
@@ -84,17 +73,10 @@ export function PropertyMap({ points, selected, onSelect, onPick, mapLabel, empt
       circles.forEach(circle => circle.setMap(null));
     };
   }, [points, ready]);
-  useEffect(() => {
-    const p = points.find(p => p.id === selected && Number.isFinite(p.latitude) && Number.isFinite(p.longitude) && p.latitude >= 33 && p.latitude <= 39 && p.longitude >= 124 && p.longitude <= 132);
-    if (p && instance.current && library.current) {
-      instance.current.setCenter(new library.current.LatLng(p.latitude, p.longitude));
-      instance.current.setLevel(3);
-    }
-  }, [selected, points, ready]);
   return <div className="property-map-wrap">
-    <div ref={host} className="property-map" role="region" aria-label={onPick ? '카카오맵에서 위치 지정' : mapLabel ?? '현재 페이지 카카오맵'} />
+    <div ref={host} className="property-map" role="region" aria-label={mapLabel ?? '카카오맵'} />
     {!ready && !error && <p role="status">카카오맵을 불러오는 중입니다.</p>}
     {error && <p role="status" className="form-error">{error} 주소와 위치 정보는 계속 확인할 수 있습니다.</p>}
-    <p className="map-caption">{onPick ? '지도를 확대해 위치를 누르거나 위도·경도를 직접 입력하세요.' : points.length ? '표시는 제공된 좌표 기준입니다. 주소와 실제 위치를 함께 확인하세요.' : emptyMessage ?? '표시할 좌표가 아직 연결되지 않았습니다.'} 지도: 카카오맵 · 지도 화면을 카카오에서 불러옵니다.</p>
+    <p className="map-caption">{points.length ? '표시는 제공된 좌표 기준입니다. 주소와 실제 위치를 함께 확인하세요.' : emptyMessage ?? '표시할 좌표가 아직 연결되지 않았습니다.'} 지도: 카카오맵 · 지도 화면을 카카오에서 불러옵니다.</p>
   </div>;
 }
