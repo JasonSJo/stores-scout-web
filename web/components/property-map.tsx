@@ -92,9 +92,9 @@ export function PropertyMap({ points, selected, onSelect, onPick, mapLabel, empt
     }
   }, [selected, points, ready]);
   return <div className="property-map-wrap">
-    <div ref={host} className="property-map" role="region" aria-label={onPick ? '카카오맵에서 매물 위치 지정' : mapLabel ?? '현재 페이지 매물 카카오맵'} />
+    <div ref={host} className="property-map" role="region" aria-label={onPick ? '카카오맵에서 위치 지정' : mapLabel ?? '현재 페이지 카카오맵'} />
     {!ready && !error && <p role="status">카카오맵을 불러오는 중입니다.</p>}
-    {error && <p role="status" className="form-error">{error} 매물 목록과 주소는 계속 확인할 수 있습니다.</p>}
-    <p className="map-caption">{onPick ? '지도를 확대해 위치를 누르거나 위도·경도를 직접 입력하세요.' : points.length ? '표시는 제공된 좌표 기준입니다. 주소와 실제 위치를 함께 확인하세요.' : emptyMessage ?? '표시할 매물 좌표가 아직 연결되지 않았습니다.'} 지도: 카카오맵 · 지도 화면을 카카오에서 불러옵니다. 지도 제공은 매물 데이터 제공과 별개입니다.</p>
+    {error && <p role="status" className="form-error">{error} 주소와 위치 정보는 계속 확인할 수 있습니다.</p>}
+    <p className="map-caption">{onPick ? '지도를 확대해 위치를 누르거나 위도·경도를 직접 입력하세요.' : points.length ? '표시는 제공된 좌표 기준입니다. 주소와 실제 위치를 함께 확인하세요.' : emptyMessage ?? '표시할 좌표가 아직 연결되지 않았습니다.'} 지도: 카카오맵 · 지도 화면을 카카오에서 불러옵니다.</p>
   </div>;
 }

@@ -629,8 +629,8 @@ export default function ConsultationPage() {
         <main className="property-review-main">
           <div className="workspace-heading">
             <div>
-              <span className="eyebrow">CONSULTATION · PROPERTY MATCH</span>
-              <h1>{form.name} 고객님의 조건별 매물</h1>
+              <span className="eyebrow">CONSULTATION · REVIEW</span>
+              <h1>{form.name} 고객님의 상담 결과</h1>
               <p>
                 입력하신 조건을 정리했습니다. 아래에서 상담 파일로 내려받으실 수
                 있습니다.
@@ -1119,8 +1119,8 @@ export default function ConsultationPage() {
                 </div>
               </div>
               <p className="field-help">
-                매매 총예산이 없으면 매매, 월세 상한이 없으면 임대 결과를
-                제외합니다. 보증금·권리금을 매매 예산으로 계산하지 않습니다.
+                입력한 금액은 상담 조건과 내부 검토를 위한 참고값으로만 기록합니다.
+                보증금·권리금을 매매 예산으로 계산하지 않습니다.
               </p>
               <fieldset>
                 <legend>
