@@ -168,6 +168,7 @@ export default function ConsultationPage() {
   const [form, setForm] = useState<Consultation>(initial);
   const [addressTarget, setAddressTarget] = useState<'work' | 'property' | null>(null);
   const [addressError, setAddressError] = useState('');
+  const [salesCheckMessage, setSalesCheckMessage] = useState('');
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
   const postcodeRef = useRef<HTMLDivElement>(null);
@@ -205,47 +206,84 @@ export default function ConsultationPage() {
   const total = Number(form.deposit || 0) + Number(form.premium || 0);
   const publicMapRegion = 지역(form.areas.find((area) => area.city && area.district) ?? { city: '', district: '', subdistrict: '' });
   useEffect(() => {
+    // 주소 검색 위젯을 미리 요청해 버튼을 눌렀을 때 바로 표시되게 한다.
+    void loadPostcodeScript().catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (!addressTarget) return;
     let active = true;
-    loadPostcodeScript().then(() => {
-      if (!active || !postcodeRef.current) return;
-      const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
-      if (!Postcode) throw new Error('주소 검색 위젯을 초기화하지 못했습니다.');
-      setAddressError('');
-      new Postcode({
-        width: '100%',
-        height: '100%',
-        oncomplete(data) {
-          if (!active) return;
-          setForm((prev) => ({
-            ...prev,
-            ...(addressTarget === 'property'
-              ? {
-                  propertyZip: data.zonecode,
-                  propertyAddress: data.roadAddress || data.jibunAddress,
-                }
-              : {
-                  work: {
-                    ...prev.work,
-                    zip: data.zonecode,
-                    main: data.roadAddress || data.jibunAddress,
-                  },
-                }),
-          }));
-          setAddressTarget(null);
-        },
-      }).embed(postcodeRef.current);
-    }).catch((cause) => {
-      if (active) setAddressError(
+    let attempts = 0;
+    let retryTimer: number | undefined;
+    const target = addressTarget;
+    const showError = (cause: unknown) => {
+      if (!active) return;
+      setAddressError(
         cause instanceof Error
           ? `${cause.message} 창을 닫고 주소를 직접 입력해 주세요.`
           : '주소 검색을 연결할 수 없습니다. 창을 닫고 주소를 직접 입력해 주세요.',
       );
-    });
+    };
+    const mount = () => {
+      if (!active) return;
+      const frame = postcodeRef.current;
+      // Base UI Dialog의 포털이 붙은 다음 프레임에 ref가 생길 수 있어 재시도한다.
+      if (!frame) {
+        if (attempts++ < 40) retryTimer = window.setTimeout(mount, 50);
+        else showError(new Error('주소 검색 창을 표시할 영역을 찾지 못했습니다.'));
+        return;
+      }
+      void loadPostcodeScript()
+        .then(() => {
+          if (!active || !postcodeRef.current) return;
+          const Postcode = window.daum?.Postcode || window.kakao?.Postcode;
+          if (!Postcode) throw new Error('주소 검색 위젯을 초기화하지 못했습니다.');
+          setAddressError('');
+          postcodeRef.current.replaceChildren();
+          new Postcode({
+            width: '100%',
+            height: '100%',
+            oncomplete(data) {
+              if (!active) return;
+              setForm((prev) => ({
+                ...prev,
+                ...(target === 'property'
+                  ? {
+                      propertyZip: data.zonecode,
+                      propertyAddress: data.roadAddress || data.jibunAddress,
+                    }
+                  : {
+                      work: {
+                        ...prev.work,
+                        zip: data.zonecode,
+                        main: data.roadAddress || data.jibunAddress,
+                      },
+                    }),
+              }));
+              if (target === 'property') setSalesCheckMessage('');
+              setAddressTarget(null);
+            },
+          }).embed(postcodeRef.current);
+        })
+        .catch(showError);
+    };
+    retryTimer = window.setTimeout(mount, 0);
     return () => {
       active = false;
+      if (retryTimer) window.clearTimeout(retryTimer);
+      postcodeRef.current?.replaceChildren();
     };
   }, [addressTarget]);
+
+  function 예상매출확인() {
+    if (!form.propertyAddress.trim()) {
+      setSalesCheckMessage('먼저 우편번호 검색으로 검토할 주소를 입력해 주세요.');
+      return;
+    }
+    setSalesCheckMessage(
+      '주소가 입력되었습니다. 예상매출 수치는 공개 화면에 임의로 표시하지 않으며, 로그인한 내부 운영 화면에서 공식 데이터로 확인합니다.',
+    );
+  }
 
   useEffect(() => {
     type Tool = {
@@ -707,6 +745,14 @@ export default function ConsultationPage() {
                 placeholder="상세주소 (선택)"
                 maxLength={120}
               />
+              <Button type="button" onClick={예상매출확인}>
+                <ClipboardCheck size={15} /> 예상매출 확인
+              </Button>
+              {salesCheckMessage ? (
+                <p className="field-help analysis-status" role="status">
+                  <Info size={13} /> {salesCheckMessage}
+                </p>
+              ) : null}
               <p className="field-help"><Info size={13} /> 주소 입력 후 상담카드 CSV를 내려받으면 내부 운영 화면에서 분석을 이어갈 수 있습니다.</p>
             </div>
           </section>
